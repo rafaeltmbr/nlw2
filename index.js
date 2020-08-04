@@ -10,7 +10,7 @@ const videoStitch = require("video-stitch");
 const outputPath = path.resolve(__dirname, ".temp");
 const totalSegments = parseInt(process.argv[2], 10) || 10;
 const baseURL =
-  "https://embed-fastly.wistia.com/deliveries/faead41b95cc915b54389b98ce40c3de241fac00.m3u8";
+  "https://embed-fastly.wistia.com/deliveries/308d5b4a0ef2fd0b0ec28df64f8372c9b43d335d.m3u8";
 
 (async () => {
   try {
@@ -40,23 +40,49 @@ function removeFile(fileName) {
 }
 
 async function downloadFiles() {
-  const fileSavePromises = [];
   const writeFile = util.promisify(fs.writeFile);
 
-  for (let i = 1; i <= totalSegments; i += 1) {
-    const promise = fetch(`${baseURL}/seg-${i}-v1-a1.ts`)
-      .then((res) => res.buffer())
-      .then((res) =>
-        writeFile(
-          path.resolve(outputPath, `${String(i).padStart(6, "0")}.ts`),
-          res
-        )
-      )
-      .catch(console.error);
+  const maxFetchIndex = totalSegments;
+  const maxStackSize = 50;
+  let fetchIndex = 1;
+  let stackSize = 0;
+  let abort = false;
 
-    fileSavePromises.push(promise);
-  }
-  await Promise.all(fileSavePromises);
+  return new Promise((resolve, reject) => {
+    function fetchFile() {
+      while (
+        fetchIndex <= maxFetchIndex &&
+        stackSize < maxStackSize &&
+        !abort
+      ) {
+        const id = fetchIndex;
+
+        fetch(`${baseURL}/seg-${id}-v1-a1.ts`)
+          .then((res) => res.buffer())
+          .then((res) =>
+            writeFile(
+              path.resolve(outputPath, `${String(id).padStart(6, "0")}.ts`),
+              res
+            )
+          )
+          .then(() => {
+            stackSize--;
+            fetchFile();
+          })
+          .catch((err) => {
+            abort = true;
+            console.error(err.message);
+          });
+
+        fetchIndex++;
+        stackSize++;
+      }
+
+      if ((abort || fetchIndex > maxFetchIndex) && stackSize <= 2) resolve();
+    }
+
+    fetchFile();
+  });
 }
 
 async function convertFiles() {
