@@ -18,13 +18,7 @@ const outputPath = path.resolve('./.temp')
 
 async function main() {
   try {
-    console.log(
-      chalk.blue(
-        `        
-            Next Level Week 2
-        `
-      )
-    )
+    console.log(chalk.yellow('\n\t\t\tNext Level Week 2\n'))
     const options = await getVideoOptions()
 
     removeFile(outputPath)
@@ -103,6 +97,9 @@ async function downloadFiles(options) {
   let abort = false
   let done = false
 
+  const ffmpegPath =
+    process.platform === 'win32' ? path.resolve(__dirname, './ffmpeg-windows/bin/ffmpeg') : 'ffmpeg'
+
   return new Promise((resolve, reject) => {
     function fetchFile() {
       while (fetchIndex <= maxFetchIndex && stackSize < maxStackSize && !abort) {
@@ -114,7 +111,7 @@ async function downloadFiles(options) {
           .then((res) => res.buffer())
           .then((res) => writeFile(writePathTs, res))
           .then(() =>
-            execAsync(`ffmpeg -i ${writePathTs} -vcodec copy -acodec copy ${writePathMP4}`)
+            execAsync(`${ffmpegPath} -i ${writePathTs} -vcodec copy -acodec copy ${writePathMP4}`)
           )
           .then(() => {
             stackSize--
