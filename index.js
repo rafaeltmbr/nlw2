@@ -28,6 +28,7 @@ async function main() {
     await concatAllFiles(options)
 
     removeFile(outputPath)
+    console.log(chalk.green.bold(`\n\n${options.title}`) + chalk.white(' baixada com sucesso'))
   } catch (err) {
     console.error(chalk.red(err.message))
   }
@@ -97,9 +98,6 @@ async function downloadFiles(options) {
   let abort = false
   let done = false
 
-  const ffmpegPath =
-    process.platform === 'win32' ? path.resolve(__dirname, './ffmpeg-windows/bin/ffmpeg') : 'ffmpeg'
-
   return new Promise((resolve, reject) => {
     function fetchFile() {
       while (fetchIndex <= maxFetchIndex && stackSize < maxStackSize && !abort) {
@@ -111,7 +109,7 @@ async function downloadFiles(options) {
           .then((res) => res.buffer())
           .then((res) => writeFile(writePathTs, res))
           .then(() =>
-            execAsync(`${ffmpegPath} -i ${writePathTs} -vcodec copy -acodec copy ${writePathMP4}`)
+            execAsync(`ffmpeg -i ${writePathTs} -vcodec copy -acodec copy ${writePathMP4}`)
           )
           .then(() => {
             stackSize--
