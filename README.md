@@ -16,4 +16,4 @@ Após baixar todas as dependências, instale a apicação globalmente utilizando
 ## Utilização
 Abra o terminal/cmd, navegue até o diretório onde deseja salvar a videoaula, execute o comando `nlw2`, escolha a aula e resolução que deseja baixar e divirta-se :D
 
-![screenshot]('assets/print.png)
+![screenshot](assets/print.png)
