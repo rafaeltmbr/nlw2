@@ -1,117 +1,164 @@
-/* eslint-disable */
-const fs = require("fs");
-const path = require("path");
-const util = require("util");
-const glob = require("glob");
-const fetch = require("node-fetch");
-const childProcess = require("child_process");
-const videoStitch = require("video-stitch");
+#!/usr/bin/env node
 
-const outputPath = path.resolve(__dirname, ".temp");
-const totalSegments = parseInt(process.argv[2], 10) || 10;
-const baseURL =
-  "https://embed-fastly.wistia.com/deliveries/308d5b4a0ef2fd0b0ec28df64f8372c9b43d335d.m3u8";
+const fs = require('fs')
+const path = require('path')
+const util = require('util')
+const glob = require('glob')
+const fetch = require('node-fetch')
+const childProcess = require('child_process')
+const videoStitch = require('video-stitch')
+const chalk = require('chalk')
+const inquirer = require('inquirer')
+const ProgressCli = require('cli-progress')
+const colors = require('colors')
+const SpinnerCli = require('cli-spinner')
 
-(async () => {
+const videos = require('./videos')
+const outputPath = path.resolve('./.temp')
+
+async function main() {
   try {
-    removeFile(outputPath);
-    fs.mkdirSync(outputPath);
+    console.log(
+      chalk.blue(
+        `        
+            Next Level Week 2
+        `
+      )
+    )
+    const options = await getVideoOptions()
 
-    await downloadFiles();
-    console.log("video segments finished downloading");
+    removeFile(outputPath)
+    fs.mkdirSync(outputPath)
 
-    await convertFiles();
-    console.log("video segments were converted to mp4");
+    await downloadFiles(options)
+    await concatAllFiles(options)
 
-    await concatAllFiles();
-    console.log("video converted");
-
-    removeFile(outputPath);
+    removeFile(outputPath)
   } catch (err) {
-    console.error(err.message);
+    console.error(chalk.red(err.message))
   }
-})();
+}
+main()
+
+async function getVideoOptions() {
+  try {
+    const videoTitle = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'title',
+        message: 'Escolha uma aula',
+        choices: videos.map((v) => v.title),
+      },
+    ])
+    const chosenVideo = videos.find((v) => videoTitle.title === v.title)
+
+    const videoResolution = await inquirer.prompt({
+      type: 'list',
+      name: 'resolution',
+      message: 'Escolha a resolução',
+      choices: chosenVideo.resolutions.map((r) => r.resolution).reverse(),
+    })
+    const chosenResolution = chosenVideo.resolutions.find(
+      (v) => v.resolution === videoResolution.resolution
+    )
+
+    const options = {
+      title: chosenVideo.title,
+      saveName: chosenVideo.saveName,
+      segments: chosenVideo.segments,
+      resolution: chosenResolution.resolution,
+      url: chosenResolution.url,
+    }
+
+    return options
+  } catch (err) {
+    console.error(chalk.red(err.message))
+  }
+}
 
 function removeFile(fileName) {
   if (fs.existsSync(fileName)) {
-    const rmCommand = process.platform === "win32" ? "rmdir /S /Q" : "rm -Rf";
-    childProcess.execSync(`${rmCommand} ${fileName}`);
+    const rmCommand = process.platform === 'win32' ? 'rmdir /S /Q' : 'rm -Rf'
+    childProcess.execSync(`${rmCommand} ${fileName}`)
   }
 }
 
-async function downloadFiles() {
-  const writeFile = util.promisify(fs.writeFile);
+async function downloadFiles(options) {
+  const writeFile = util.promisify(fs.writeFile)
+  const execAsync = util.promisify(childProcess.exec)
 
-  const maxFetchIndex = totalSegments;
-  const maxStackSize = 50;
-  let fetchIndex = 1;
-  let stackSize = 0;
-  let abort = false;
+  console.log('')
+
+  const progress = new ProgressCli.SingleBar({
+    format: `Baixando ${colors.green('{bar}')} {percentage}% | {value}/{total} chunks`,
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+  })
+  progress.start(options.segments, 0)
+
+  const maxFetchIndex = options.segments
+  const maxStackSize = 50
+  let fetchIndex = 1
+  let stackSize = 0
+  let abort = false
+  let done = false
 
   return new Promise((resolve, reject) => {
     function fetchFile() {
-      while (
-        fetchIndex <= maxFetchIndex &&
-        stackSize < maxStackSize &&
-        !abort
-      ) {
-        const id = fetchIndex;
+      while (fetchIndex <= maxFetchIndex && stackSize < maxStackSize && !abort) {
+        const id = fetchIndex
+        const writePathTs = path.resolve(outputPath, `${String(id).padStart(6, '0')}.ts`)
+        const writePathMP4 = path.resolve(outputPath, `${String(id).padStart(6, '0')}.mp4`)
 
-        fetch(`${baseURL}/seg-${id}-v1-a1.ts`)
+        fetch(`${options.url}/seg-${id}-v1-a1.ts`)
           .then((res) => res.buffer())
-          .then((res) =>
-            writeFile(
-              path.resolve(outputPath, `${String(id).padStart(6, "0")}.ts`),
-              res
-            )
+          .then((res) => writeFile(writePathTs, res))
+          .then(() =>
+            execAsync(`ffmpeg -i ${writePathTs} -vcodec copy -acodec copy ${writePathMP4}`)
           )
           .then(() => {
-            stackSize--;
-            fetchFile();
+            stackSize--
+            progress.increment()
+            fetchFile()
           })
           .catch((err) => {
-            abort = true;
-            console.error(err.message);
-          });
+            abort = true
+            console.error(chalk.red(err.message))
+          })
 
-        fetchIndex++;
-        stackSize++;
+        fetchIndex++
+        stackSize++
       }
 
-      if ((abort || fetchIndex > maxFetchIndex) && stackSize <= 2) resolve();
+      if ((abort || fetchIndex > maxFetchIndex) && stackSize <= 5 && !done) {
+        setTimeout(() => {
+          progress.stop()
+          resolve()
+        }, 1000)
+        done = true
+      }
     }
 
-    fetchFile();
-  });
+    fetchFile()
+  })
 }
 
-async function convertFiles() {
-  const convertionPromises = [];
-  const execAsync = util.promisify(childProcess.exec);
-  const videos = glob.sync(`${outputPath}/*.ts`).map((e) => path.resolve(e));
+async function concatAllFiles(options) {
+  try {
+    console.log('')
 
-  videos.map((video) => {
-    const promise = execAsync(
-      `ffmpeg -i ${video} -vcodec copy -acodec copy ${video.replace(
-        /\.ts/i,
-        ".mp4"
-      )}`
-    ).catch((err) => console.error(err.message));
+    const videos = glob.sync(`${outputPath}/*.mp4`).map((e) => ({ fileName: path.resolve(e) }))
+    const spinner = new SpinnerCli.Spinner('Montando o arquivo MP4 %s')
+    spinner.start()
 
-    convertionPromises.push(promise);
-  });
+    await videoStitch
+      .concat({ silent: true, overwrite: true })
+      .clips(videos)
+      .output(path.resolve(`./${options.saveName}(${options.resolution}).mp4`))
+      .concat()
 
-  await Promise.all(convertionPromises);
-}
-
-async function concatAllFiles() {
-  const videos = glob
-    .sync(`${outputPath}/*.mp4`)
-    .map((e) => ({ fileName: path.resolve(e) }));
-
-  await videoStitch
-    .concat({ silent: true, overwrite: true })
-    .clips(videos)
-    .output(path.resolve(__dirname, `video-${Date.now()}.mp4`))
-    .concat();
+    spinner.stop()
+  } catch (err) {
+    console.log(chalk.red(err.message))
+  }
 }
