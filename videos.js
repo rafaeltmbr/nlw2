@@ -97,4 +97,36 @@ module.exports = [
       },
     ],
   },
+  {
+    title: 'Aula 4 - Até 2 anos em 2 meses',
+    saveName: 'Aula4-Ate-2-anos-em-2-meses',
+    segments: 2060,
+    resolutions: [
+      {
+        resolution: '224p',
+        url:
+          'https://embedwistia-a.akamaihd.net/deliveries/d4dc994562256a81663b56cbc14d401ae87f8e9a.m3u8',
+      },
+      {
+        resolution: '360p',
+        url:
+          'https://embedwistia-a.akamaihd.net/deliveries/d8e90327bcf1b19f7582e30289192261988b9ae3.m3u8',
+      },
+      {
+        resolution: '540p',
+        url:
+          'https://embedwistia-a.akamaihd.net/deliveries/3bf882ac66bc2e1c781b0b8721a348543a94c968.m3u8',
+      },
+      {
+        resolution: '720p',
+        url:
+          'https://embedwistia-a.akamaihd.net/deliveries/34f0f2cdad949ea747016ceb93b5774ab505c8ef.m3u8',
+      },
+      {
+        resolution: '1080p',
+        url:
+          'https://embedwistia-a.akamaihd.net/deliveries/c3bdc48ec3176f2a0a6122e5bc033732cc32b4a3.m3u8',
+      },
+    ],
+  },
 ]

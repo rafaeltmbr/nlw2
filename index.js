@@ -95,13 +95,12 @@ async function downloadFiles(options) {
   const maxStackSize = 50
   let fetchIndex = 1
   let stackSize = 0
-  let abort = false
   let done = false
 
   return new Promise((resolve, reject) => {
-    function fetchFile() {
-      while (fetchIndex <= maxFetchIndex && stackSize < maxStackSize && !abort) {
-        const id = fetchIndex
+    function fetchFile(videoId = 0, retryCount = 0) {
+      while (fetchIndex <= maxFetchIndex && stackSize < maxStackSize) {
+        const id = videoId || fetchIndex
         const writePathTs = path.resolve(outputPath, `${String(id).padStart(6, '0')}.ts`)
         const writePathMP4 = path.resolve(outputPath, `${String(id).padStart(6, '0')}.mp4`)
 
@@ -117,15 +116,18 @@ async function downloadFiles(options) {
             fetchFile()
           })
           .catch((err) => {
-            abort = true
-            console.error(chalk.red(err.message))
+            fetchFile(id, retryCount + 1)
+            if (retryCount >= 3) {
+              console.error(chalk.red(err.message))
+              process.exit()
+            }
           })
 
         fetchIndex++
         stackSize++
       }
 
-      if ((abort || fetchIndex > maxFetchIndex) && stackSize <= 5 && !done) {
+      if (fetchIndex > maxFetchIndex && stackSize <= 5 && !done) {
         setTimeout(() => {
           progress.stop()
           resolve()
