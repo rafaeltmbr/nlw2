@@ -151,7 +151,7 @@ async function concatAllFiles(options) {
     await videoStitch
       .concat({ silent: true, overwrite: true })
       .clips(videos)
-      .output(path.resolve(`./${options.saveName}(${options.resolution}).mp4`))
+      .output(path.resolve(`./${options.saveName}-${options.resolution}.mp4`))
       .concat()
 
     spinner.stop()
