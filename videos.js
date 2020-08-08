@@ -99,7 +99,7 @@ module.exports = [
   },
   {
     title: 'Aula 4 - Até 2 anos em 2 meses',
-    saveName: 'Aula4-Ate-2-anos-em-2-meses',
+    saveName: 'Aula-4-Ate-2-anos-em-2-meses',
     segments: 2060,
     resolutions: [
       {
@@ -126,6 +126,38 @@ module.exports = [
         resolution: '1080p',
         url:
           'https://embedwistia-a.akamaihd.net/deliveries/c3bdc48ec3176f2a0a6122e5bc033732cc32b4a3.m3u8',
+      },
+    ],
+  },
+  {
+    title: 'Aula 5 - A milha extra',
+    saveName: 'Aula-5-A-milha-extra',
+    segments: 2666,
+    resolutions: [
+      {
+        resolution: '224p',
+        url:
+          'https://embedwistia-a.akamaihd.net/deliveries/6709e467bc05c848030e5aaa02cf377e30817c20.m3u8',
+      },
+      {
+        resolution: '360p',
+        url:
+          'https://embedwistia-a.akamaihd.net/deliveries/c6e47018462fae7a0549b5b918cc5536e1c2d2cb.m3u8',
+      },
+      {
+        resolution: '540p',
+        url:
+          'https://embedwistia-a.akamaihd.net/deliveries/541d128b10495b96189d08cedcd3e1994f9d2a6b.m3u8',
+      },
+      {
+        resolution: '720p',
+        url:
+          'https://embedwistia-a.akamaihd.net/deliveries/750a164ecfa75fa50a2d1ae78b7385295080a4dd.m3u8',
+      },
+      {
+        resolution: '1080p',
+        url:
+          'https://embedwistia-a.akamaihd.net/deliveries/c1eba72e3e9fb48af87c17f8e5673b876cc939f3.m3u8',
       },
     ],
   },
